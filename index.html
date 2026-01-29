@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL INTELLIGENCE AGENCY: MISSION HUB</title>
+    <style>
+        body { background-color: #050505; color: #00ff41; font-family: 'Consolas', monospace; padding: 40px; text-align: center; }
+        h1 { font-size: 3em; text-shadow: 0 0 10px #00ff41; margin-bottom: 10px; letter-spacing: 5px; }
+        p { color: #888; margin-bottom: 50px; font-size: 1.2em; }
+        
+        .mission-grid { display: flex; justify-content: center; gap: 40px; flex-wrap: wrap; }
+        
+        .mission-card {
+            background: #111; border: 2px solid #333; width: 300px; padding: 30px; border-radius: 10px;
+            transition: 0.3s; cursor: pointer; text-decoration: none; color: inherit; position: relative; overflow: hidden;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .mission-card:hover { border-color: #00ff41; transform: translateY(-10px); box-shadow: 0 0 30px rgba(0,255,65,0.15); }
+        
+        .mission-icon { font-size: 5em; margin-bottom: 20px; display: block; }
+        .mission-title { font-size: 1.5em; font-weight: bold; margin-bottom: 10px; color: #fff; text-transform: uppercase; }
+        .mission-desc { font-size: 0.9em; color: #aaa; line-height: 1.5; margin-bottom: 20px; }
+        .btn { background: #00ff41; color: black; padding: 10px 20px; border-radius: 5px; font-weight: bold; text-transform: uppercase; margin-top: auto; }
+        
+        footer { margin-top: 80px; color: #444; font-size: 0.8em; border-top: 1px solid #222; padding-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <h1>SQL CENTRAL HUB</h1>
+    <p>SELECT YOUR MISSION, AGENT.</p>
+
+    <div class="mission-grid">
+        <a href="game1.html" class="mission-card">
+            <span class="mission-icon">🏫</span>
+            <span class="mission-title">The School Hack</span>
+            <span class="mission-desc">Investigasi pembobolan ruang server sekolah. Lacak siswa nakal, analisis log pintu, dan bersihkan virus jaringan.</span>
+            <span class="btn">Start Mission</span>
+        </a>
+
+        <a href="game2.html" class="mission-card">
+            <span class="mission-icon">🛒</span>
+            <span class="mission-title">Market Fraud</span>
+            <span class="mission-desc">Bongkar sindikat penipuan di E-Commerce "Tokopaedi". Analisis transaksi palsu, voucher error, dan bot review.</span>
+            <span class="btn">Start Mission</span>
+        </a>
+
+        <a href="game3.html" class="mission-card">
+            <span class="mission-icon">☣️</span>
+            <span class="mission-title">Virus Outbreak</span>
+            <span class="mission-desc">Melacak Patient Zero di Rumah Sakit Pusat. Analisis data medis, isolasi wilayah, dan cegah pandemi global.</span>
+            <span class="btn">Start Mission</span>
+        </a>
+    </div>
+
+    <footer>
+        &copy; M. Aziz Al Assad, S.T., Gr. <br>
+        Developed for Educational Purpose.
+    </footer>
+
+</body>
+</html>

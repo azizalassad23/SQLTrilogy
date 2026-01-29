@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mission 1: School Hack</title>
+    <script src="https://cdn.jsdelivr.net/npm/alasql@1.7.3/dist/alasql.min.js"></script>
+    <style>
+        :root { --bg: #0d1117; --green: #00ff41; --red: #ff3333; --yellow: #ffd700; --panel: #161b22; --border: #30363d; }
+        body { font-family: 'Consolas', monospace; background: var(--bg); color: #c9d1d9; padding: 20px; max-width: 950px; margin: auto; padding-bottom: 80px; user-select: none; }
+        #game-container { display: none; }
+        .container { background: var(--panel); padding: 25px; border-radius: 6px; border: 1px solid var(--border); margin-top: 10px; }
+        h1 { text-align: center; color: var(--green); margin-bottom: 20px; letter-spacing: 2px; text-transform: uppercase; border-bottom: 1px dashed #333; padding-bottom: 15px; }
+        .story-box { background: #050505; padding: 15px 20px; border-left: 3px solid var(--green); margin-bottom: 20px; line-height: 1.5; font-size: 0.95em; color: #d0d7de; }
+        .level-tag { background: var(--green); color: black; padding: 2px 6px; font-weight: bold; font-size: 0.75em; margin-right: 8px; border-radius: 2px; }
+        textarea { width: 100%; height: 70px; background: #0d1117; color: var(--green); border: 1px solid var(--border); padding: 10px; font-size: 1em; outline: none; resize: vertical; }
+        textarea:focus { border-color: var(--green); }
+        button.exec-btn { background: #238636; color: white; border: none; padding: 10px; cursor: pointer; font-size: 14px; border-radius: 4px; font-weight: bold; width: 100%; margin-top: 10px; transition: 0.2s;}
+        button.exec-btn:hover { background: #2ea043; }
+        #result-area { margin-top: 20px; overflow-x: auto; border-top: 1px solid var(--border); padding-top: 15px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+        th, td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; }
+        th { background: #21262d; color: #fff; }
+        tr:nth-child(even) { background-color: #0d1117; }
+        #schema-footer { position: fixed; bottom: 0; left: 0; width: 100%; height: 40px; background: #050505; border-top: 1px solid #333; display: flex; align-items: center; padding: 0 15px; gap: 20px; overflow-x: auto; z-index: 100; white-space: nowrap; font-size: 0.8em; }
+        #schema-footer::-webkit-scrollbar { height: 3px; }
+        #schema-footer::-webkit-scrollbar-thumb { background: #333; }
+        .schema-item strong { color: #999; margin-right: 3px; }
+        .schema-item:hover strong { color: var(--green); }
+        .info-bar { display: flex; justify-content: space-between; margin-bottom: 10px; color: #666; font-size: 0.85em; border-bottom: 1px solid #222; padding-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
+        #timer-display { color: var(--green); font-weight: bold; font-size: 1.1em;}
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 5000; display: none; justify-content: center; align-items: center; flex-direction: column; text-align: center; }
+        #login-overlay { background: #000; display: flex; }
+        .login-box { border: 1px solid var(--green); padding: 40px; border-radius: 4px; background: #0a0a0a; width: 320px; }
+        .login-input { width: 100%; padding: 12px; margin: 10px 0; background: #1a1a1a; border: 1px solid #333; color: white; outline: none; }
+        .login-input:focus { border-color: var(--green); }
+        .start-btn { background: var(--green); color: black; font-weight: bold; width: 100%; padding: 12px; border: none; cursor: pointer; margin-top: 20px; transition: 0.3s; }
+        #warning-overlay { background: rgba(50, 40, 0, 0.95); border: 5px solid var(--yellow); color: var(--yellow); z-index: 8000; }
+        .warn-btn { background: var(--yellow); color: black; border: none; padding: 10px 30px; font-weight: bold; cursor: pointer; margin-top: 20px; font-size: 1.2em; }
+        #punish-overlay { background: #1a0000; color: var(--red); border: 5px solid var(--red); z-index: 9999; }
+        .cheat-timer { font-size: 5em; font-weight: bold; color: white; margin: 20px 0; font-family: monospace; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--green); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+<div id="warning-overlay" class="overlay">
+    <h1 style="color:var(--yellow)">⚠️ PERINGATAN ⚠️</h1>
+    <h2>DILARANG PINDAH TAB!</h2>
+    <p>Ini adalah peringatan terakhir.</p>
+    <button class="warn-btn" onclick="dismissWarning()">SAYA MENGERTI</button>
+</div>
+<div id="punish-overlay" class="overlay">
+    <h1 style="color:var(--red)">⛔ TERKUNCI ⛔</h1>
+    <p>Akses diblokir karena kecurangan.</p>
+    <div id="punish-timer" class="cheat-timer">10:00</div>
+</div>
+<div id="login-overlay" class="overlay">
+    <div class="login-box">
+        <h2 style="color:var(--green)">SECURE LOGIN</h2>
+        <p style="color:#666">MISSION 1: SCHOOL HACK</p>
+        <input type="text" id="inputNama" class="login-input" placeholder="Nama Lengkap">
+        <input type="text" id="inputKelas" class="login-input" placeholder="Kelas">
+        <button class="start-btn" onclick="startGame()">START MISSION >></button>
+    </div>
+</div>
+<div id="game-container">
+    <div class="info-bar"><span>AGEN: <span id="display-nama">-</span></span><span>TIMER: <span id="timer-display">00:00</span></span></div>
+    <div class="container">
+        <h1>🏫 Cyber Detective</h1>
+        <div class="story-box" id="story-text"></div>
+        <div id="input-section"><textarea id="sqlInput" placeholder=">_ SELECT * FROM..."></textarea><button class="exec-btn" onclick="runSQL()">EKSEKUSI (Ctrl+Enter)</button></div>
+        <div id="result-area"></div>
+    </div>
+</div>
+<div id="schema-footer"></div>
+<script>
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw3ddzDBaah5D9YDUzUT6dpWSVZHbkiNRpWxMwmG7l4j8K6pfKzKFzji_idVAOsppT_/exec"; 
+    const GAME_ID = "game1"; 
+    const GAME_TITLE = "School Hack";
+
+    let userData = { nama: "", kelas: "" };
+    let startTime, timerInterval, currentLevel = 1, isGameActive = false;
+
+    window.onload = function() { checkLockState(); };
+    function checkLockState() {
+        const lockUntil = localStorage.getItem('lock_' + GAME_ID);
+        if (lockUntil && new Date().getTime() < lockUntil) showPunishment(lockUntil);
+        else { localStorage.removeItem('lock_' + GAME_ID); localStorage.removeItem('cheat_' + GAME_ID); }
+    }
+    function startGame() {
+        let n = document.getElementById('inputNama').value, k = document.getElementById('inputKelas').value;
+        if(!n || !k) return alert("Isi Data!");
+        userData = {nama: n, kelas: k};
+        document.getElementById('display-nama').innerText = n;
+        document.getElementById('login-overlay').style.display = 'none';
+        document.getElementById('game-container').style.display = 'block';
+        if(!localStorage.getItem('lock_' + GAME_ID)) localStorage.setItem('cheat_' + GAME_ID, 0);
+        startTime = new Date(); timerInterval = setInterval(updateTimer, 1000); isGameActive = true;
+        enableAntiCheat(); initDatabase(); updateStory(1);
+    }
+    function enableAntiCheat() {
+        document.addEventListener("visibilitychange", handleViolation); window.addEventListener("blur", handleViolation);
+    }
+    function handleViolation() {
+        if (isGameActive && (document.hidden || !document.hasFocus())) {
+            let c = parseInt(localStorage.getItem('cheat_' + GAME_ID) || 0);
+            if (c === 0) {
+                c++; localStorage.setItem('cheat_' + GAME_ID, c);
+                document.getElementById('warning-overlay').style.display = 'flex';
+            } else {
+                triggerLockdown();
+            }
+        }
+    }
+    function dismissWarning() { document.getElementById('warning-overlay').style.display = 'none'; }
+    function triggerLockdown() {
+        isGameActive = false; clearInterval(timerInterval);
+        const lockUntil = new Date().getTime() + 600000; // 10 Min
+        localStorage.setItem('lock_' + GAME_ID, lockUntil);
+        showPunishment(lockUntil);
+    }
+    function showPunishment(endTime) {
+        document.getElementById('punish-overlay').style.display = 'flex';
+        document.getElementById('login-overlay').style.display = 'none';
+        let intv = setInterval(() => {
+            let now = new Date().getTime(), dist = endTime - now;
+            if (dist < 0) { clearInterval(intv); localStorage.removeItem('lock_' + GAME_ID); localStorage.removeItem('cheat_' + GAME_ID); location.reload(); }
+            else {
+                let m = Math.floor((dist % (3.6e6)) / 6e4), s = Math.floor((dist % 6e4) / 1000);
+                document.getElementById('punish-timer').innerText = `${m}:${s}`;
+            }
+        }, 1000);
+    }
+    function updateTimer() {
+        let diff = Math.floor((new Date() - startTime) / 1000);
+        let m = Math.floor(diff/60).toString().padStart(2,'0'), s = (diff%60).toString().padStart(2,'0');
+        document.getElementById('timer-display').innerText = `${m}:${s}`;
+    }
+
+    function initDatabase() {
+        alasql("CREATE TABLE siswa (id INT, nama STRING, kelas STRING, status STRING)");
+        alasql("INSERT INTO siswa VALUES (1, 'Budi', 'XII RPL 1', 'Aktif'), (18, 'Rian', 'XII TKJ 2', 'Aktif'), (45, 'Kevin', 'XI TKJ 1', 'Aktif'), (99, 'Admin', 'Staff', 'Aktif')");
+        alasql("CREATE TABLE log_pintu (id INT, id_siswa INT, lokasi STRING, status STRING)");
+        alasql("INSERT INTO log_pintu VALUES (1, 18, 'R.Server', 'Ditolak'), (2, 18, 'R.Server', 'Diterima'), (3, 45, 'R.CCTV', 'Diterima'), (4, 99, 'R.Guru', 'Masuk')");
+        alasql("CREATE TABLE bank (id INT, penerima INT, jumlah INT)");
+        alasql("INSERT INTO bank VALUES (1, 18, 5000000), (2, 45, 2000000)");
+        alasql("CREATE TABLE files (nama STRING, tipe STRING, size_mb INT)");
+        alasql("INSERT INTO files VALUES ('virus.exe', 'Virus', 10), ('data.docx', 'Doc', 2)");
+        alasql("CREATE TABLE inventaris (barang STRING, harga INT, kondisi STRING)");
+        alasql("INSERT INTO inventaris VALUES ('Laptop', 25000000, 'Hilang'), ('Mouse', 100000, 'Baik')");
+        alasql("CREATE TABLE laporan (tersangka STRING, status STRING)");
+        alasql("CREATE TABLE devices (id_siswa INT, os STRING)");
+        alasql("INSERT INTO devices VALUES (1, 'Windows'), (45, 'Kali Linux'), (18, 'Android')");
+        renderFooter();
+    }
+
+    function runSQL() {
+        let q = document.getElementById('sqlInput').value;
+        try {
+            let res = alasql(q);
+            if (Array.isArray(res) && Array.isArray(res[0])) res = res[res.length-1];
+            if (q.toLowerCase().trim().startsWith('select')) renderTable(res);
+            else document.getElementById('result-area').innerHTML = `<div style="color:var(--green);border:1px solid;padding:10px">✅ Sukses</div>`;
+            checkProgress(q, res);
+        } catch (e) { document.getElementById('result-area').innerHTML = `<div style="color:red;border:1px solid;padding:10px">❌ ${e.message}</div>`; }
+    }
+
+    function checkProgress(qRaw, res) {
+        let q = qRaw.toLowerCase().trim();
+        let next = false;
+        // 23 LEVEL LOGIC
+        if (currentLevel===1 && q.includes('siswa')) next=true;
+        else if (currentLevel===2 && q.includes('where') && q.includes('server')) next=true;
+        else if (currentLevel===3 && q.includes('id = 18')) next=true;
+        else if (currentLevel===4 && q.includes('update')) next=true;
+        else if (currentLevel===5 && q.includes('bank') && q.includes('>')) next=true;
+        else if (currentLevel===6 && q.includes('order by')) next=true;
+        else if (currentLevel===7 && q.includes('id = 45')) next=true;
+        else if (currentLevel===8 && q.includes('like')) next=true;
+        else if (currentLevel===9 && q.includes('count')) next=true;
+        else if (currentLevel===10 && q.includes('files') && q.includes('like')) next=true;
+        else if (currentLevel===11 && q.includes('delete')) next=true;
+        else if (currentLevel===12 && q.includes('sum')) next=true;
+        else if (currentLevel===13 && q.includes('insert')) next=true;
+        else if (currentLevel===14 && q.includes('distinct')) next=true;
+        else if (currentLevel===15 && q.includes('group by')) next=true;
+        else if (currentLevel===16 && q.includes('having')) next=true;
+        else if (currentLevel===17 && q.includes('max')) next=true;
+        else if (currentLevel===18 && q.includes('join')) next=true;
+        else if (currentLevel===19 && q.includes('limit')) next=true;
+        else if (currentLevel===20 && q.includes('update') && q.includes('99')) next=true;
+        else if (currentLevel===21 && q.includes('select') && q.includes('in')) next=true;
+        else if (currentLevel===22 && q.includes('avg')) next=true;
+        else if (currentLevel===23 && q.includes('drop table')) { finishGame(); return; }
+
+        if (next) { currentLevel++; updateStory(currentLevel); document.getElementById('sqlInput').value = ""; }
+    }
+
+    function updateStory(lvl) {
+        const s = {
+            1: "Cek tabel <code>siswa</code>.",
+            2: "Filter log pintu 'R.Server'.",
+            3: "Cari nama ID 18.",
+            4: "Update status ID 18 jadi 'Suspended'.",
+            5: "Cek transfer > 1 Juta di bank.",
+            6: "Urutkan transaksi terbesar.",
+            7: "Cari profil ID 45.",
+            8: "Cari teman sekelas '%TKJ%'.",
+            9: "Hitung akses pintu ID 45.",
+            10: "Cari file '.exe' di server.",
+            11: "Hapus virus.",
+            12: "Hitung total rugi barang 'Hilang'.",
+            13: "Insert laporan 'Kevin'.",
+            14: "Cek lokasi unik (DISTINCT) di log.",
+            15: "Hitung akses per lokasi (GROUP BY).",
+            16: "Lokasi diakses > 1 kali (HAVING).",
+            17: "Transaksi paling besar (MAX).",
+            18: "Gabungkan (JOIN) siswa & devices.",
+            19: "Top 3 siswa (LIMIT).",
+            20: "Ban Admin (ID 99).",
+            21: "Siapa pakai 'Kali Linux'? (IN).",
+            22: "Rata-rata suap (AVG).",
+            23: "Hapus jejak log (DROP TABLE)."
+        };
+        document.getElementById('story-text').innerHTML = `<h3>LEVEL ${lvl}</h3><p>${s[lvl] || "Lanjut..."}</p>`;
+    }
+
+    function finishGame() {
+        clearInterval(timerInterval); isGameActive = false;
+        let time = document.getElementById('timer-display').innerText;
+        document.getElementById('input-section').style.display='none';
+        document.getElementById('story-text').innerHTML = "<h3>MISI SELESAI</h3><p>Mengirim data...</p>";
+        
+        const fd = new FormData(); fd.append("nama", userData.nama); fd.append("kelas", userData.kelas); fd.append("waktu", time); fd.append("game", GAME_TITLE);
+        fetch(GOOGLE_SCRIPT_URL, {method: "POST", body: fd, mode: "no-cors"}).then(()=> alert("Terkirim!")).catch(()=>alert("Gagal Kirim"));
+    }
+
+    function renderFooter() {
+        const t = alasql("SHOW TABLES");
+        document.getElementById('schema-footer').innerHTML = t.map(x => `<div class='schema-item'><strong>${x.tableid}</strong></div>`).join(" | ");
+    }
+    function renderTable(d) {
+        if(!d.length) return document.getElementById('result-area').innerHTML = "No Data";
+        let h = "<table><thead><tr>" + Object.keys(d[0]).map(k=>`<th>${k}</th>`).join('') + "</tr></thead><tbody>";
+        h += d.map(r=>"<tr>"+Object.values(r).map(v=>`<td>${v}</td>`).join('')+"</tr>").join('') + "</tbody></table>";
+        document.getElementById('result-area').innerHTML = h;
+    }
+</script>
+</body>
+</html>

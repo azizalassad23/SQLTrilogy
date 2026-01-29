@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mission 2: Market Fraud</title>
+    <script src="https://cdn.jsdelivr.net/npm/alasql@1.7.3/dist/alasql.min.js"></script>
+    <style>
+        :root { --bg: #f3f4f6; --panel: #ffffff; --text: #1f2937; --accent: #f97316; --border: #e5e7eb; --red: #ef4444; --yellow: #f59e0b; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 20px; max-width: 950px; margin: auto; padding-bottom: 80px; user-select: none; }
+        #game-container { display: none; }
+        .container { background: var(--panel); padding: 30px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-top: 20px; }
+        h1 { color: var(--accent); margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 15px; }
+        .story-box { background: #fff7ed; padding: 20px; border-left: 5px solid var(--accent); margin-bottom: 25px; border-radius: 4px; color: #4b5563; }
+        textarea { width: 100%; height: 80px; background: #f9fafb; color: var(--text); border: 2px solid var(--border); padding: 15px; outline: none; border-radius: 8px; font-family: 'Consolas', monospace; }
+        textarea:focus { border-color: var(--accent); background: #fff; }
+        button.exec-btn { background: var(--accent); color: white; border: none; padding: 12px; cursor: pointer; border-radius: 8px; font-weight: 600; width: 100%; margin-top: 15px; transition: 0.2s; }
+        button.exec-btn:hover { background: #ea580c; }
+        #result-area { margin-top: 25px; overflow-x: auto; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.9em; }
+        th { background: #f3f4f6; padding: 12px; border-bottom: 2px solid var(--border); text-align: left; }
+        td { padding: 12px; border-bottom: 1px solid var(--border); }
+        #schema-footer { position: fixed; bottom: 0; left: 0; width: 100%; height: 50px; background: #fff; border-top: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; gap: 20px; overflow-x: auto; z-index: 100; }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 5000; display: none; justify-content: center; align-items: center; flex-direction: column; text-align: center; backdrop-filter: blur(5px); }
+        #login-overlay { background: rgba(31, 41, 55, 0.95); display: flex; }
+        .login-box { background: white; padding: 40px; border-radius: 16px; width: 350px; }
+        .login-input { background: #f3f4f6; border: 1px solid #d1d5db; padding: 12px; width: 100%; margin: 10px 0; border-radius: 8px; }
+        .start-btn { background: var(--accent); color: white; width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 20px; }
+        #warning-overlay { background: rgba(254, 243, 199, 0.98); color: #92400e; border: 10px solid var(--yellow); }
+        .warn-btn { background: var(--yellow); border: none; padding: 10px 20px; cursor: pointer; font-weight: bold; border-radius: 6px; }
+        #punish-overlay { background: #7f1d1d; color: white; }
+        .cheat-timer { font-size: 5em; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div id="warning-overlay" class="overlay"><h1>⚠️ PERINGATAN</h1><p>Dilarang Pindah Tab!</p><button class="warn-btn" onclick="dismissWarning()">PAHAM</button></div>
+    <div id="punish-overlay" class="overlay"><h1>⛔ AKUN DIBEKUKAN</h1><div id="punish-timer" class="cheat-timer">10:00</div></div>
+    <div id="login-overlay" class="overlay">
+        <div class="login-box"><h2>ADMIN LOGIN</h2><p>MISSION 2: MARKET FRAUD</p><input id="inputNama" class="login-input" placeholder="Nama"><input id="inputKelas" class="login-input" placeholder="Kelas"><button class="start-btn" onclick="startGame()">MASUK DASHBOARD</button></div>
+    </div>
+    <div id="game-container">
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px; color:#6b7280; font-weight:bold;"><span>ADMIN: <span id="display-nama">-</span></span><span><span id="timer-display">00:00</span></span></div>
+        <div class="container">
+            <h1>🛒 Tokopaedi Admin</h1>
+            <div class="story-box" id="story-text"></div>
+            <div id="input-section"><textarea id="sqlInput" placeholder=">_ SELECT * FROM..."></textarea><button class="exec-btn" onclick="runSQL()">RUN QUERY</button></div>
+            <div id="result-area"></div>
+        </div>
+    </div>
+    <div id="schema-footer"></div>
+
+<script>
+    // --- JS LOGIC SAME AS GAME 1 BUT DIFFERENT DATA ---
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw3ddzDBaah5D9YDUzUT6dpWSVZHbkiNRpWxMwmG7l4j8K6pfKzKFzji_idVAOsppT_/exec"; 
+    const GAME_ID = "game2"; 
+    const GAME_TITLE = "Market Fraud";
+    let userData = {}, startTime, timerInterval, currentLevel = 1, isGameActive = false;
+
+    // ... (COPY PASTE FUNCTIONS: checkLockState, startGame, enableAntiCheat, handleViolation, etc FROM GAME 1) ...
+    // ... (HANYA GANTI INITDATABASE & UPDATESTORY DI BAWAH INI) ...
+
+    window.onload = function() { checkLockState(); };
+    function checkLockState() {
+        const lockUntil = localStorage.getItem('lock_' + GAME_ID);
+        if (lockUntil && new Date().getTime() < lockUntil) showPunishment(lockUntil);
+        else { localStorage.removeItem('lock_' + GAME_ID); localStorage.removeItem('cheat_' + GAME_ID); }
+    }
+    function startGame() {
+        let n = document.getElementById('inputNama').value, k = document.getElementById('inputKelas').value;
+        if(!n || !k) return alert("Isi Data!");
+        userData = {nama: n, kelas: k};
+        document.getElementById('display-nama').innerText = n;
+        document.getElementById('login-overlay').style.display = 'none';
+        document.getElementById('game-container').style.display = 'block';
+        if(!localStorage.getItem('lock_' + GAME_ID)) localStorage.setItem('cheat_' + GAME_ID, 0);
+        startTime = new Date(); timerInterval = setInterval(updateTimer, 1000); isGameActive = true;
+        enableAntiCheat(); initDatabase(); updateStory(1);
+    }
+    function enableAntiCheat() { document.addEventListener("visibilitychange", handleViolation); window.addEventListener("blur", handleViolation); }
+    function handleViolation() {
+        if (isGameActive && (document.hidden || !document.hasFocus())) {
+            let c = parseInt(localStorage.getItem('cheat_' + GAME_ID) || 0);
+            if (c === 0) { c++; localStorage.setItem('cheat_' + GAME_ID, c); document.getElementById('warning-overlay').style.display = 'flex'; }
+            else { triggerLockdown(); }
+        }
+    }
+    function dismissWarning() { document.getElementById('warning-overlay').style.display = 'none'; }
+    function triggerLockdown() {
+        isGameActive = false; clearInterval(timerInterval);
+        const lockUntil = new Date().getTime() + 600000; localStorage.setItem('lock_' + GAME_ID, lockUntil); showPunishment(lockUntil);
+    }
+    function showPunishment(endTime) {
+        document.getElementById('punish-overlay').style.display = 'flex'; document.getElementById('login-overlay').style.display = 'none';
+        let intv = setInterval(() => {
+            let now = new Date().getTime(), dist = endTime - now;
+            if (dist < 0) { clearInterval(intv); localStorage.removeItem('lock_' + GAME_ID); localStorage.removeItem('cheat_' + GAME_ID); location.reload(); }
+            else { let m = Math.floor((dist % (3.6e6)) / 6e4), s = Math.floor((dist % 6e4) / 1000); document.getElementById('punish-timer').innerText = `${m}:${s}`; }
+        }, 1000);
+    }
+    function updateTimer() {
+        let diff = Math.floor((new Date() - startTime) / 1000);
+        let m = Math.floor(diff/60).toString().padStart(2,'0'), s = (diff%60).toString().padStart(2,'0');
+        document.getElementById('timer-display').innerText = `${m}:${s}`;
+    }
+
+    function initDatabase() {
+        alasql("CREATE TABLE users (id INT, username STRING, email STRING, status STRING)");
+        alasql("INSERT INTO users VALUES (1, 'bakul_ori', 'ori@mail.com', 'Active'), (2, 'fraud_bot', 'bot@fake.com', 'Active'), (3, 'sultan', 'rich@mail.com', 'Active'), (99, 'admin_jahat', 'admin@toko.com', 'Admin')");
+        alasql("CREATE TABLE orders (id INT, id_user INT, total INT, status STRING)");
+        alasql("INSERT INTO orders VALUES (101, 2, 0, 'Success'), (102, 3, 500000, 'Success'), (103, 2, 0, 'Success'), (104, 1, 15000, 'Pending')");
+        alasql("CREATE TABLE vouchers (kode STRING, potongan INT)");
+        alasql("INSERT INTO vouchers VALUES ('DISKON100', 100), ('HEMAT', 10)");
+        alasql("CREATE TABLE reviews (id INT, id_user INT, rating INT, comment STRING)");
+        alasql("INSERT INTO reviews VALUES (1, 2, 5, 'Gan gan gan'), (2, 3, 5, 'Bagus')");
+        alasql("CREATE TABLE logs (id INT, ip STRING, activity STRING)");
+        alasql("INSERT INTO logs VALUES (1, '192.168.1.1', 'Login'), (2, '192.168.1.1', 'Checkout')");
+        alasql("CREATE TABLE seller (id INT, id_user INT, toko STRING)");
+        alasql("INSERT INTO seller VALUES (1, 1, 'Toko Jujur'), (2, 2, 'Toko Palsu')");
+        renderFooter();
+    }
+
+    function runSQL() {
+        let q = document.getElementById('sqlInput').value;
+        try {
+            let res = alasql(q);
+            if (Array.isArray(res) && Array.isArray(res[0])) res = res[res.length-1];
+            if (q.toLowerCase().trim().startsWith('select')) renderTable(res);
+            else document.getElementById('result-area').innerHTML = `<div style="color:var(--accent);border:1px solid;padding:10px">✅ Command Executed</div>`;
+            checkProgress(q, res);
+        } catch (e) { document.getElementById('result-area').innerHTML = `<div style="color:red;border:1px solid;padding:10px">❌ ${e.message}</div>`; }
+    }
+
+    function checkProgress(qRaw, res) {
+        let q = qRaw.toLowerCase().trim();
+        let next = false;
+        // 23 LEVEL LOGIC (SAME STRUCTURE)
+        if (currentLevel===1 && q.includes('users')) next=true;
+        else if (currentLevel===2 && q.includes('where') && q.includes('pending')) next=true;
+        else if (currentLevel===3 && q.includes('id = 2')) next=true;
+        else if (currentLevel===4 && q.includes('update')) next=true;
+        else if (currentLevel===5 && q.includes('total = 0') && q.includes('success')) next=true;
+        else if (currentLevel===6 && q.includes('order by')) next=true;
+        else if (currentLevel===7 && q.includes('id = 99')) next=true;
+        else if (currentLevel===8 && q.includes('like')) next=true;
+        else if (currentLevel===9 && q.includes('count')) next=true;
+        else if (currentLevel===10 && q.includes('reviews') && q.includes('like')) next=true;
+        else if (currentLevel===11 && q.includes('delete')) next=true;
+        else if (currentLevel===12 && q.includes('sum')) next=true;
+        else if (currentLevel===13 && q.includes('insert')) next=true;
+        else if (currentLevel===14 && q.includes('distinct')) next=true;
+        else if (currentLevel===15 && q.includes('group by')) next=true;
+        else if (currentLevel===16 && q.includes('having')) next=true;
+        else if (currentLevel===17 && q.includes('max')) next=true;
+        else if (currentLevel===18 && q.includes('join')) next=true;
+        else if (currentLevel===19 && q.includes('limit')) next=true;
+        else if (currentLevel===20 && q.includes('update') && q.includes('99')) next=true;
+        else if (currentLevel===21 && q.includes('select') && q.includes('in')) next=true;
+        else if (currentLevel===22 && q.includes('avg')) next=true;
+        else if (currentLevel===23 && q.includes('drop table')) { finishGame(); return; }
+
+        if (next) { currentLevel++; updateStory(currentLevel); document.getElementById('sqlInput').value = ""; }
+    }
+
+    function updateStory(lvl) {
+        const s = {
+            1: "Cek tabel <code>users</code>.",
+            2: "Cari order status 'Pending'.",
+            3: "Cek user ID 2 (mencurigakan).",
+            4: "Update status ID 2 jadi 'Banned'.",
+            5: "Cek order Rp 0 tapi 'Success'.",
+            6: "Urutkan order total terbesar.",
+            7: "Cek profil Admin (ID 99).",
+            8: "Cari email '@fake.com'.",
+            9: "Hitung order ID 2.",
+            10: "Cari review spam 'Gan'.",
+            11: "Hapus Voucher 'DISKON100'.",
+            12: "Hitung total kerugian (SUM).",
+            13: "Insert laporan fraud.",
+            14: "Cek IP unik (DISTINCT) di logs.",
+            15: "Group By status order.",
+            16: "User order > 1 kali (HAVING).",
+            17: "Transaksi tertinggi (MAX).",
+            18: "Join Users & Orders.",
+            19: "Top 3 order (LIMIT).",
+            20: "Pecat Admin (Update status).",
+            21: "Siapa punya 'Toko Palsu'? (Subquery).",
+            22: "Rata-rata Rating (AVG).",
+            23: "Hapus log (DROP TABLE)."
+        };
+        document.getElementById('story-text').innerHTML = `<h3>LEVEL ${lvl}</h3><p>${s[lvl] || "Lanjut..."}</p>`;
+    }
+
+    function finishGame() {
+        clearInterval(timerInterval); isGameActive = false;
+        let time = document.getElementById('timer-display').innerText;
+        document.getElementById('input-section').style.display='none';
+        document.getElementById('story-text').innerHTML = "<h3>MISI SELESAI</h3><p>Mengirim data...</p>";
+        const fd = new FormData(); fd.append("nama", userData.nama); fd.append("kelas", userData.kelas); fd.append("waktu", time); fd.append("game", GAME_TITLE);
+        fetch(GOOGLE_SCRIPT_URL, {method: "POST", body: fd, mode: "no-cors"}).then(()=> alert("Terkirim!")).catch(()=>alert("Gagal Kirim"));
+    }
+
+    function renderFooter() {
+        const t = alasql("SHOW TABLES");
+        document.getElementById('schema-footer').innerHTML = t.map(x => `<div class='schema-item'><strong>${x.tableid}</strong></div>`).join(" | ");
+    }
+    function renderTable(d) {
+        if(!d.length) return document.getElementById('result-area').innerHTML = "No Data";
+        let h = "<table><thead><tr>" + Object.keys(d[0]).map(k=>`<th>${k}</th>`).join('') + "</tr></thead><tbody>";
+        h += d.map(r=>"<tr>"+Object.values(r).map(v=>`<td>${v}</td>`).join('')+"</tr>").join('') + "</tbody></table>";
+        document.getElementById('result-area').innerHTML = h;
+    }
+</script>
+</body>
+</html>

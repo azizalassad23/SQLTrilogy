@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Mission 3: Virus Outbreak</title>
+    <script src="https://cdn.jsdelivr.net/npm/alasql@1.7.3/dist/alasql.min.js"></script>
+    <style>
+        :root { --bg: #000; --text: #00f3ff; --danger: #ff003c; --grid: #0f3640; --font: 'Courier New', monospace; }
+        body { font-family: var(--font); background: var(--bg); color: var(--text); padding: 20px; max-width: 950px; margin: auto; padding-bottom: 80px; user-select: none; background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px); background-size: 30px 30px; }
+        #game-container { display: none; }
+        .container { background: rgba(5,16,20,0.9); padding: 25px; border: 1px solid var(--text); box-shadow: 0 0 20px rgba(0,243,255,0.1); margin-top: 10px; }
+        h1 { text-align: center; color: var(--danger); text-shadow: 0 0 10px var(--danger); border-bottom: 1px solid var(--danger); padding-bottom: 15px; letter-spacing: 5px; }
+        .story-box { background: #000; padding: 15px; border: 1px dashed var(--text); margin-bottom: 20px; color: #bdeff2; }
+        textarea { width: 100%; height: 70px; background: #020a0d; color: var(--text); border: 1px solid var(--grid); padding: 10px; font-size: 1.1em; outline: none; font-family: inherit; }
+        textarea:focus { border-color: var(--text); }
+        button.exec-btn { background: transparent; color: var(--text); border: 1px solid var(--text); padding: 10px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; text-transform: uppercase; }
+        button.exec-btn:hover { background: var(--text); color: black; box-shadow: 0 0 15px var(--text); }
+        #result-area { margin-top: 20px; overflow-x: auto; border-top: 1px solid var(--grid); padding-top: 15px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+        th { border: 1px solid var(--grid); padding: 8px; text-align: left; color: var(--danger); }
+        td { border: 1px solid var(--grid); padding: 8px; color: var(--text); }
+        #schema-footer { position: fixed; bottom: 0; left: 0; width: 100%; height: 40px; background: #000; border-top: 1px solid var(--danger); display: flex; align-items: center; padding: 0 15px; gap: 20px; overflow-x: auto; z-index: 100; white-space: nowrap; }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 5000; display: none; justify-content: center; align-items: center; flex-direction: column; text-align: center; background: rgba(0,0,0,0.9); }
+        #login-overlay { display: flex; }
+        .login-box { border: 1px solid var(--text); padding: 40px; background: #000; width: 320px; box-shadow: 0 0 20px rgba(0,243,255,0.2); }
+        .login-input { width: 100%; padding: 12px; margin: 10px 0; background: #051014; border: 1px solid var(--grid); color: var(--text); outline: none; font-family: inherit; }
+        .start-btn { background: var(--text); color: black; font-weight: bold; width: 100%; padding: 12px; border: none; cursor: pointer; margin-top: 20px; font-family: inherit; }
+        #warning-overlay { border: 2px solid yellow; color: yellow; background: rgba(20, 20, 0, 0.95); }
+        .warn-btn { background: yellow; color: black; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; }
+        #punish-overlay { border: 2px solid var(--danger); color: var(--danger); background: #000; }
+        .cheat-timer { font-size: 4em; text-shadow: 0 0 20px var(--danger); margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div id="warning-overlay" class="overlay"><h1>⚠️ ALERT</h1><p>Focus on Terminal!</p><button class="warn-btn" onclick="dismissWarning()">ACKNOWLEDGE</button></div>
+    <div id="punish-overlay" class="overlay"><h1>⛔ BIOHAZARD LOCK</h1><div id="punish-timer" class="cheat-timer">10:00</div></div>
+    <div id="login-overlay" class="overlay">
+        <div class="login-box"><h2>LAB ACCESS</h2><p>MISSION 3: VIRUS OUTBREAK</p><input id="inputNama" class="login-input" placeholder="Operative Name"><input id="inputKelas" class="login-input" placeholder="Unit/Class"><button class="start-btn" onclick="startGame()">INITIATE</button></div>
+    </div>
+    <div id="game-container">
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px; border-bottom:1px solid #0f3640; padding-bottom:5px;"><span>OP: <span id="display-nama">-</span></span><span><span id="timer-display">00:00</span></span></div>
+        <div class="container">
+            <h1>☣️ CDC Terminal</h1>
+            <div class="story-box" id="story-text"></div>
+            <div id="input-section"><textarea id="sqlInput" placeholder=">_ SELECT * FROM..."></textarea><button class="exec-btn" onclick="runSQL()">EXECUTE</button></div>
+            <div id="result-area"></div>
+        </div>
+    </div>
+    <div id="schema-footer"></div>
+
+<script>
+    // --- JS LOGIC SAME STRUCTURE ---
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw3ddzDBaah5D9YDUzUT6dpWSVZHbkiNRpWxMwmG7l4j8K6pfKzKFzji_idVAOsppT_/exec"; 
+    const GAME_ID = "game3"; 
+    const GAME_TITLE = "Virus Outbreak";
+    let userData = {}, startTime, timerInterval, currentLevel = 1, isGameActive = false;
+
+    // ... (COPY PASTE FUNCTIONS: checkLockState, startGame, etc) ...
+
+    window.onload = function() { checkLockState(); };
+    function checkLockState() {
+        const lockUntil = localStorage.getItem('lock_' + GAME_ID);
+        if (lockUntil && new Date().getTime() < lockUntil) showPunishment(lockUntil);
+        else { localStorage.removeItem('lock_' + GAME_ID); localStorage.removeItem('cheat_' + GAME_ID); }
+    }
+    function startGame() {
+        let n = document.getElementById('inputNama').value, k = document.getElementById('inputKelas').value;
+        if(!n || !k) return alert("Required!");
+        userData = {nama: n, kelas: k};
+        document.getElementById('display-nama').innerText = n;
+        document.getElementById('login-overlay').style.display = 'none';
+        document.getElementById('game-container').style.display = 'block';
+        if(!localStorage.getItem('lock_' + GAME_ID)) localStorage.setItem('cheat_' + GAME_ID, 0);
+        startTime = new Date(); timerInterval = setInterval(updateTimer, 1000); isGameActive = true;
+        enableAntiCheat(); initDatabase(); updateStory(1);
+    }
+    function enableAntiCheat() { document.addEventListener("visibilitychange", handleViolation); window.addEventListener("blur", handleViolation); }
+    function handleViolation() {
+        if (isGameActive && (document.hidden || !document.hasFocus())) {
+            let c = parseInt(localStorage.getItem('cheat_' + GAME_ID) || 0);
+            if (c === 0) { c++; localStorage.setItem('cheat_' + GAME_ID, c); document.getElementById('warning-overlay').style.display = 'flex'; }
+            else { triggerLockdown(); }
+        }
+    }
+    function dismissWarning() { document.getElementById('warning-overlay').style.display = 'none'; }
+    function triggerLockdown() {
+        isGameActive = false; clearInterval(timerInterval);
+        const lockUntil = new Date().getTime() + 600000; localStorage.setItem('lock_' + GAME_ID, lockUntil); showPunishment(lockUntil);
+    }
+    function showPunishment(endTime) {
+        document.getElementById('punish-overlay').style.display = 'flex'; document.getElementById('login-overlay').style.display = 'none';
+        let intv = setInterval(() => {
+            let now = new Date().getTime(), dist = endTime - now;
+            if (dist < 0) { clearInterval(intv); localStorage.removeItem('lock_' + GAME_ID); localStorage.removeItem('cheat_' + GAME_ID); location.reload(); }
+            else { let m = Math.floor((dist % (3.6e6)) / 6e4), s = Math.floor((dist % 6e4) / 1000); document.getElementById('punish-timer').innerText = `${m}:${s}`; }
+        }, 1000);
+    }
+    function updateTimer() {
+        let diff = Math.floor((new Date() - startTime) / 1000);
+        let m = Math.floor(diff/60).toString().padStart(2,'0'), s = (diff%60).toString().padStart(2,'0');
+        document.getElementById('timer-display').innerText = `${m}:${s}`;
+    }
+
+    function initDatabase() {
+        alasql("CREATE TABLE patients (id INT, nama STRING, status STRING, kota STRING)");
+        alasql("INSERT INTO patients VALUES (1, 'Siti', 'Infected', 'Wuhan'), (2, 'Joko', 'Sehat', 'Jakarta'), (3, 'Budi', 'Infected', 'Jakarta'), (99, 'Zero', 'Infected', 'Laboratorium')");
+        alasql("CREATE TABLE admissions (id INT, id_pasien INT, suhu INT, tgl STRING)");
+        alasql("INSERT INTO admissions VALUES (101, 1, 39, '2025-01-01'), (102, 2, 36, '2025-01-02'), (103, 3, 38, '2025-01-05')");
+        alasql("CREATE TABLE travel (id_pasien INT, lokasi STRING)");
+        alasql("INSERT INTO travel VALUES (1, 'Pasar'), (3, 'Pasar'), (2, 'Rumah')");
+        alasql("CREATE TABLE labs (sample_id STRING, result STRING)");
+        alasql("INSERT INTO labs VALUES ('S01', 'Positive'), ('S02', 'Negative')");
+        alasql("CREATE TABLE vaccines (id INT, nama STRING, dosis INT)");
+        alasql("INSERT INTO vaccines VALUES (1, 'Sinovac', 100)");
+        alasql("CREATE TABLE hospitals (id INT, nama STRING, kapasitas INT)");
+        alasql("INSERT INTO hospitals VALUES (1, 'RS Pusat', 500)");
+        alasql("CREATE TABLE logs (id INT, action STRING)");
+        alasql("INSERT INTO logs VALUES (1, 'Breach Detected')");
+        renderFooter();
+    }
+
+    function runSQL() {
+        let q = document.getElementById('sqlInput').value;
+        try {
+            let res = alasql(q);
+            if (Array.isArray(res) && Array.isArray(res[0])) res = res[res.length-1];
+            if (q.toLowerCase().trim().startsWith('select')) renderTable(res);
+            else document.getElementById('result-area').innerHTML = `<div style="color:var(--text);border:1px solid;padding:10px">✅ EXECUTION COMPLETE</div>`;
+            checkProgress(q, res);
+        } catch (e) { document.getElementById('result-area').innerHTML = `<div style="color:red;border:1px solid;padding:10px">❌ ${e.message}</div>`; }
+    }
+
+    function checkProgress(qRaw, res) {
+        let q = qRaw.toLowerCase().trim();
+        let next = false;
+        // 23 LEVEL LOGIC (SAME STRUCTURE)
+        if (currentLevel===1 && q.includes('patients')) next=true;
+        else if (currentLevel===2 && q.includes('where') && q.includes('infected')) next=true;
+        else if (currentLevel===3 && q.includes('id = 1')) next=true;
+        else if (currentLevel===4 && q.includes('update')) next=true;
+        else if (currentLevel===5 && q.includes('travel') && q.includes('pasar')) next=true;
+        else if (currentLevel===6 && q.includes('order by')) next=true;
+        else if (currentLevel===7 && q.includes('id = 99')) next=true;
+        else if (currentLevel===8 && q.includes('like')) next=true;
+        else if (currentLevel===9 && q.includes('count')) next=true;
+        else if (currentLevel===10 && q.includes('labs') && q.includes('like')) next=true;
+        else if (currentLevel===11 && q.includes('delete')) next=true;
+        else if (currentLevel===12 && q.includes('sum')) next=true;
+        else if (currentLevel===13 && q.includes('insert')) next=true;
+        else if (currentLevel===14 && q.includes('distinct')) next=true;
+        else if (currentLevel===15 && q.includes('group by')) next=true;
+        else if (currentLevel===16 && q.includes('having')) next=true;
+        else if (currentLevel===17 && q.includes('max')) next=true;
+        else if (currentLevel===18 && q.includes('join')) next=true;
+        else if (currentLevel===19 && q.includes('limit')) next=true;
+        else if (currentLevel===20 && q.includes('update') && q.includes('wuhan')) next=true;
+        else if (currentLevel===21 && q.includes('select') && q.includes('in')) next=true;
+        else if (currentLevel===22 && q.includes('avg')) next=true;
+        else if (currentLevel===23 && q.includes('drop table')) { finishGame(); return; }
+
+        if (next) { currentLevel++; updateStory(currentLevel); document.getElementById('sqlInput').value = ""; }
+    }
+
+    function updateStory(lvl) {
+        const s = {
+            1: "Cek tabel <code>patients</code>.",
+            2: "Cari pasien 'Infected'.",
+            3: "Cek ID 1 (Suspect 1).",
+            4: "Update status ID 1 jadi 'Quarantine'.",
+            5: "Cek travel history ke 'Pasar'.",
+            6: "Urutkan pasien berdasar tgl masuk (Order By).",
+            7: "Cek profil Patient Zero (ID 99).",
+            8: "Cari pasien nama awalan 'J' (LIKE).",
+            9: "Hitung total infected.",
+            10: "Cari hasil lab 'Positive' (LIKE).",
+            11: "Hapus data 'Unknown-X'.",
+            12: "Hitung total kapasitas RS (SUM).",
+            13: "Insert vaksin baru.",
+            14: "Cek kota unik (DISTINCT).",
+            15: "Group By status pasien.",
+            16: "Kota dengan > 1 infected (HAVING).",
+            17: "Suhu tubuh tertinggi (MAX).",
+            18: "Join Patients & Admissions.",
+            19: "Top 3 critical (LIMIT).",
+            20: "Lockdown kota 'Wuhan' (Update).",
+            21: "Siapa ke 'Pasar'? (Subquery).",
+            22: "Rata-rata suhu tubuh (AVG).",
+            23: "Hapus data sensitif (DROP TABLE)."
+        };
+        document.getElementById('story-text').innerHTML = `<h3>LEVEL ${lvl}</h3><p>${s[lvl] || "Lanjut..."}</p>`;
+    }
+
+    function finishGame() {
+        clearInterval(timerInterval); isGameActive = false;
+        let time = document.getElementById('timer-display').innerText;
+        document.getElementById('input-section').style.display='none';
+        document.getElementById('story-text').innerHTML = "<h3>MISI SELESAI</h3><p>Mengirim data...</p>";
+        const fd = new FormData(); fd.append("nama", userData.nama); fd.append("kelas", userData.kelas); fd.append("waktu", time); fd.append("game", GAME_TITLE);
+        fetch(GOOGLE_SCRIPT_URL, {method: "POST", body: fd, mode: "no-cors"}).then(()=> alert("Terkirim!")).catch(()=>alert("Gagal Kirim"));
+    }
+
+    function renderFooter() {
+        const t = alasql("SHOW TABLES");
+        document.getElementById('schema-footer').innerHTML = t.map(x => `<div class='schema-item'><strong>${x.tableid}</strong></div>`).join(" | ");
+    }
+    function renderTable(d) {
+        if(!d.length) return document.getElementById('result-area').innerHTML = "No Data";
+        let h = "<table><thead><tr>" + Object.keys(d[0]).map(k=>`<th>${k}</th>`).join('') + "</tr></thead><tbody>";
+        h += d.map(r=>"<tr>"+Object.values(r).map(v=>`<td>${v}</td>`).join('')+"</tr>").join('') + "</tbody></table>";
+        document.getElementById('result-area').innerHTML = h;
+    }
+</script>
+</body>
+</html>
